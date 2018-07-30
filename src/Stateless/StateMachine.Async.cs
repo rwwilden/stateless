@@ -9,6 +9,51 @@ namespace Stateless
 {
     public partial class StateMachine<TState, TTrigger>
     {
+        private Func<Task<TState>> _stateAccessorAsync;
+        private Func<TState, Task> _stateMutatorAsync;
+
+        /// <summary>
+        /// Construct a state machine with external state storage.
+        /// </summary>
+        /// <param name="stateAccessor">A function that will be called to read the current state value.</param>
+        /// <param name="stateMutator">An action that will be called to write new state values.</param>
+        public StateMachine(Func<Task<TState>> stateAccessor, Func<TState, Task> stateMutator) : this(stateAccessor, stateMutator, FiringMode.Queued)
+        {
+        }
+
+        /// <summary>
+        /// Construct a state machine with external state storage.
+        /// </summary>
+        /// <param name="stateAccessor">A function that will be called to read the current state value.</param>
+        /// <param name="stateMutator">An action that will be called to write new state values.</param>
+        /// <param name="firingMode">Optional specification of fireing mode.</param>
+        public StateMachine(Func<Task<TState>> stateAccessor, Func<TState, Task> stateMutator, FiringMode firingMode) : this()
+        {
+            _stateAccessorAsync = stateAccessor ?? throw new ArgumentNullException(nameof(stateAccessor));
+            _stateMutatorAsync = stateMutator ?? throw new ArgumentNullException(nameof(stateMutator));
+
+            _firingMode = firingMode;
+        }
+
+        /// <summary>
+        /// Returns current state machine state.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<TState> GetStateAsync()
+        {
+            return await _stateAccessorAsync();
+        }
+
+        /// <summary>
+        /// Sets current state machine state.
+        /// </summary>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        public async Task SetStateAsync(TState state)
+        {
+            await _stateMutatorAsync(state);
+        }
+
         /// <summary>
         /// Activates current state in asynchronous fashion. Actions associated with activating the currrent state
         /// will be invoked. The activation is idempotent and subsequent activation of the same current state 
